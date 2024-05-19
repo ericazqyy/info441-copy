@@ -1,39 +1,36 @@
-import React, { useState, useEffect } from 'react';
-import UserAvatar from '../components/UserAvatar';
-import { useSocket } from '../hooks/useSocket';
+import React, { useState } from 'react';
 
 const CreateLobby = ({ user }) => {
-    const [roomCode, setRoomCode] = useState('');
-    const [guest, setGuest] = useState(null);
-    const { socket } = useSocket();
+  const [roomCode, setRoomCode] = useState('');
+  const [guest, setGuest] = useState(null);
 
-    useEffect(() => {
-        socket.emit('createLobby');
-        socket.on('lobbyCreated', (data) => setRoomCode(data.roomCode));
-        socket.on('guestJoined', (data) => setGuest(data.guest));
-    }, [socket]);
+  const handleCreateLobby = async () => {
+    try {
+      const response = await fetch('/api/create-lobby', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerID: user.userID }),
+      });
+      const data = await response.json();
+      setRoomCode(data.roomCode);
+    } catch (error) {
+      console.error('Error creating lobby:', error);
+    }
+  };
 
-    const handleReadyUp = () => {
-        if (guest) {
-            socket.emit('startGame', { roomCode });
-        }
-    };
-
-    return (
-        <div className="create-lobby-page">
-            <h1>Create Lobby</h1>
-            <p>Room Code: {roomCode}</p>
-            <h2>Host:</h2>
-            <UserAvatar avatarUrl={user.avatarUrl} username={user.username} />
-            <h2>Guest:</h2>
-            {guest ? (
-                <UserAvatar avatarUrl={guest.avatarUrl} username={guest.username} />
-            ) : (
-                <p>Waiting for guest...</p>
-            )}
-            <button onClick={handleReadyUp} disabled={!guest}>Ready Up</button>
+  return (
+    <div className="create-lobby-page">
+      <h1>Create Lobby</h1>
+      <button onClick={handleCreateLobby}>Create</button>
+      {roomCode && (
+        <div className="lobby-info">
+          <p>Room Code: {roomCode}</p>
+          <p>Host: {user.username}</p>
+          {guest ? <p>Guest: {guest.username}</p> : <p>Waiting for guest...</p>}
         </div>
-    );
+      )}
+    </div>
+  );
 };
 
 export default CreateLobby;
